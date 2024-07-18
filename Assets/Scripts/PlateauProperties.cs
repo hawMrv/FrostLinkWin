@@ -26,6 +26,7 @@ public class PlateauProperties : MonoBehaviour
 
     public GameObject _HoleIndicator;
     public GameObject _PlayerIndicator;
+    public GameObject _PathIndicator;
 
     [Space(10)]
 
@@ -43,6 +44,9 @@ public class PlateauProperties : MonoBehaviour
     private bool _isHole = false;
     [SerializeField]
     private int _playerType = 0;
+    [SerializeField]
+    private bool _isPath = false;
+
     
     private float _playerIndicatorHeightOffset = 0.15f;
     private float _playerIndicatorRiseTime = 0.500f;
@@ -91,23 +95,22 @@ public class PlateauProperties : MonoBehaviour
         _ID[1] = y;
     }
 
-    public bool IsHole()
-    {
-        return _isHole;
-    }
+    public bool IsHole() { return _isHole; }
 
     public void IsHole(bool isHole)
     {
         _isHole = isHole;
 
-        if (_isHole)
-        {
-            _HoleIndicator.gameObject.SetActive(true);
-        }
-        else
-        {
-            _HoleIndicator.gameObject.SetActive(false);
-        }
+        _HoleIndicator.gameObject.SetActive(_isHole);
+    }
+
+    public bool IsPath() { return _isPath; }
+
+    public void IsPath(bool isPath) 
+    {
+        _isPath = isPath;
+
+        _PathIndicator.gameObject.SetActive(_isPath);
     }
 
     public void ShowHoleVisibility(bool show)

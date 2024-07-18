@@ -18,6 +18,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 
 public class FieldGenerator : MonoBehaviour
@@ -41,9 +42,9 @@ public class FieldGenerator : MonoBehaviour
     [Space(10)]
 
     [SerializeField]
-    private int _fieldWidthNumber = 5;
+    private int _fieldWidth = 5;
     [SerializeField]
-    private int _fieldHeightNumber = 10;
+    private int _fieldHeight = 10;
     [SerializeField]
     private int _plateauRotation = 0;
     [SerializeField]
@@ -64,11 +65,13 @@ public class FieldGenerator : MonoBehaviour
     private GameObject[][] _PlateauA = new GameObject[0][];
     private GameObject[][] _PlateauB = new GameObject[0][];
 
-    private bool[][] _holesA = new bool[0][];
-    private bool[][] _holesB = new bool[0][];
+    private bool[][] _holes = new bool[0][];
+    private bool[][] _path = new bool[0][];
 
     [SerializeField]
-    private bool _showHoles = false;
+    private bool _showHoles = true;
+    [SerializeField]
+    private bool _showPaths = true;
 
     private bool _mirrorPlateauA = true;
 
@@ -119,23 +122,23 @@ public class FieldGenerator : MonoBehaviour
         RemoveAllPlateaus();
 
         // creating all arrays
-        _PlateauA = new GameObject[_fieldWidthNumber][];
-        _PlateauB = new GameObject[_fieldWidthNumber][];
+        _PlateauA = new GameObject[_fieldWidth][];
+        _PlateauB = new GameObject[_fieldWidth][];
 
-        _PlateauPropertiesA = new PlateauProperties[_fieldWidthNumber][];  
-        _PlateauPropertiesB = new PlateauProperties[_fieldWidthNumber][]; 
+        _PlateauPropertiesA = new PlateauProperties[_fieldWidth][];  
+        _PlateauPropertiesB = new PlateauProperties[_fieldWidth][]; 
 
-        _holesA = new bool[_fieldWidthNumber][];
-        _holesB = new bool[_fieldWidthNumber][];
+        _holes = new bool[_fieldWidth][];
+        _path = new bool[_fieldWidth][];
 
-        for (int i = 0; i < _fieldWidthNumber; i++)
+        for (int i = 0; i < _fieldWidth; i++)
         {
-            _PlateauA[i] = new GameObject[_fieldHeightNumber];
-            _PlateauB[i] = new GameObject[_fieldHeightNumber];
-            _holesA[i] = new bool[_fieldHeightNumber];
-            _holesB[i] = new bool[_fieldHeightNumber];
-            _PlateauPropertiesA[i] = new PlateauProperties[_fieldHeightNumber];
-            _PlateauPropertiesB[i] = new PlateauProperties[_fieldHeightNumber];
+            _PlateauA[i] = new GameObject[_fieldHeight];
+            _PlateauB[i] = new GameObject[_fieldHeight];
+            _holes[i] = new bool[_fieldHeight];
+            _path[i] = new bool[_fieldHeight];
+            _PlateauPropertiesA[i] = new PlateauProperties[_fieldHeight];
+            _PlateauPropertiesB[i] = new PlateauProperties[_fieldHeight];
         }
 
         Debug.LogWarning("Plateau Holes are generated randomly", this);
@@ -177,8 +180,8 @@ public class FieldGenerator : MonoBehaviour
                 _PlateauB[i][j].transform.SetParent(_PlayFieldPlane[1].transform);
 
                 // defining Dimensions
-                _maxHeight = _fieldHeightNumber * plateauUnitSize;
-                _maxWidth = _fieldWidthNumber * plateauUnitSize;
+                _maxHeight = _fieldHeight * plateauUnitSize;
+                _maxWidth = _fieldWidth * plateauUnitSize;
 
                 // placing grid
                 _tempVec = Vector3.zero;
@@ -208,17 +211,18 @@ public class FieldGenerator : MonoBehaviour
                 if (randomInt <= _holeChance)
                 {
                     //Debug.Log("Setting holes to TRUE", this);
-                    _holesA[i][j] = true;
-                    _holesB[i][j] = true;
+                    _holes[i][j] = true;
                 }
                 else
                 {
-                    _holesA[i][j] = false;
-                    _holesB[i][j] = false;
+                    _holes[i][j] = false;
                 }
 
-                _PlateauPropertiesA[i][j].IsHole(_holesA[i][j]);
-                _PlateauPropertiesB[i][j].IsHole(_holesB[i][j]);
+                _PlateauPropertiesA[i][j].IsHole(_holes[i][j]);
+                _PlateauPropertiesB[i][j].IsHole(_holes[i][j]);
+
+                _PlateauPropertiesA[i][j].ShowHoleVisibility(_showHoles);
+                _PlateauPropertiesB[i][j].ShowHoleVisibility(_showHoles);
 
                 _PlateauA[i][j].transform.position -= (_PlateauA[i][j].transform.up * i * j * 0.1f) + (_PlateauA[i][j].transform.up * 0.3f);
                 _PlateauB[i][j].transform.position -= (_PlateauA[i][j].transform.up * i * j * 0.1f) + (_PlateauA[i][j].transform.up * 0.3f);
@@ -226,11 +230,64 @@ public class FieldGenerator : MonoBehaviour
                 _PlateauPropertiesA[i][j].Surface();
                 _PlateauPropertiesB[i][j].Surface();
 
-                _PlateauPropertiesA[i][j].ShowHoleVisibility(_showHoles);
-                _PlateauPropertiesB[i][j].ShowHoleVisibility(_showHoles);
+                
+            }
+        }
+
+        // Generating path
+        Debug.Log("Generating ensured Path", this);
+
+        float dice = UnityEngine.Random.Range(0f, 100f);
+        int row = 0;
+        int col = Mathf.RoundToInt(UnityEngine.Random.Range(0, _PlateauPropertiesA.Length));
+
+        while (row < _fieldHeight)
+        {
+            _path[col][row] = true;
+            _holes[col][row] = false;
+
+            dice = UnityEngine.Random.Range(0f, 100f);
+            if (dice < 50f)
+            {
+                dice = UnityEngine.Random.Range(0f, 100f);
+                if (dice < 50)
+                {
+                    col--;               
+                }
+                else
+                {
+                    col++;
+                }
+
+                if (col < 0)
+                {
+                    col += 2;
+                }
+                else if (col >= _fieldWidth)
+                {
+                    col -= 2;
+                }
+
+                _path[col][row] = true;
+                _holes[col][row] = false;
+            }
+            
+            row++;
+        }
+
+        for (int i = 0; i < _PlateauPropertiesA.Length; i++)
+        {
+            for (int j = 0; j < _PlateauPropertiesA[i].Length; j++)
+            {
+                _PlateauPropertiesA[i][j].IsPath(_path[i][j]);
+                _PlateauPropertiesB[i][j].IsPath(_path[i][j]);
+
+                _PlateauPropertiesA[i][j].IsHole(_holes[i][j]);
+                _PlateauPropertiesB[i][j].IsHole(_holes[i][j]);
             }
         }
     }
+
 
     public void RemoveAllPlateaus()
     {
@@ -305,19 +362,42 @@ public class FieldGenerator : MonoBehaviour
         {
             if (_PlateauA[i][j] != null && _PlateauA[i][j].activeInHierarchy) _PlateauPropertiesA[i][j].PlayerSteppedOnPlateau();
 
-            if (j == _fieldHeightNumber - 1) _PlayerManager.GameWon();
+            if (j == _fieldHeight - 1) _PlayerManager.GameWon();
         }
 
         if (_PlateauA[i][j] != null && _PlateauA[i][j].activeInHierarchy) _PlateauPropertiesA[i][j].TriggerHole();
         if (_PlateauB[i][j] != null && _PlateauA[i][j].activeInHierarchy) _PlateauPropertiesB[i][j].TriggerHole();
 
-        if (_holesA[i][j]) _PlayerManager.PlayerSteppedOnHole(type);
+        if (_holes[i][j]) _PlayerManager.PlayerSteppedOnHole(type);
     }
 
     public void MirrorPlateauA(bool mirror)
     {
         _mirrorPlateauA = mirror;
     }
+
+    public void FieldWidth(int width) { _fieldWidth = width; }
+    public void FieldWidth(float width) { _fieldWidth = (int)width; }
+    public int FieldWidth() { return _fieldWidth; }
+
+    public void FieldHeight(int width) { _fieldHeight = width; }
+    public void FieldHeight(float width) { _fieldHeight = (int)width; }
+    public int FieldHeight() { return _fieldHeight; }
+
+    public void HoleChance(int chance) { _holeChance = chance; }
+    public void HoleChance(float chance) { _holeChance = (int)chance; }
+    public int HoleChance() { return _holeChance; }
+
+    public void PlateauRotation(int rotation) { _plateauRotation = rotation; }
+    public void PlateauRotation(float rotation) { _plateauRotation = (int)rotation; }
+    public int PlateauRotation() { return _plateauRotation; }
+
+    public void PlateauSize(float size) { _plateauSize = size; }
+    public float PlateauSize() { return _plateauSize; }
+
+    public void PlateauSpacing(float spacing) { _plateauSpacing = spacing; }
+    public float PlateauSpacing() { return _plateauSpacing; }
+
 
     #endregion
 }

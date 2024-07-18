@@ -1,0 +1,1 @@
+{"_fieldWidth":5,"_fieldHeight":10,"_plateauRotation":0,"_plateauSize":1.0,"_holeChance":62,"_plateauSpacing":0.30000001192092898}
